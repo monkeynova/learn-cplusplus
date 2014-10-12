@@ -13,9 +13,9 @@ namespace Test
         int testCount = 0;
         int failureCount = 0;
 
-        bool ok( string message = "" )
+        bool pass( string message = "" )
         {
-            cout << "ok " << testCount++;
+            cout << "ok " << ++testCount;
             if ( message != "" )
                 cout << " " << message;
             cout << endl;
@@ -23,12 +23,20 @@ namespace Test
         }
         bool fail( string message = "" )
         {
-            cout << "not ok " << testCount++;
+            cout << "not ok " << ++testCount;
             if ( message != "" )
                 cout << " " << message;
             cout << endl;
             failureCount++;
             return false;
+        }
+        bool ok( bool test, string message = "" )
+        {
+            if ( test ) {
+                return pass( message );
+            } else {
+                return fail( message );
+            }
         }
         void plan( int plannedTestCount )
         {
@@ -53,45 +61,32 @@ namespace Test
             cerr << "# " << message << endl;
         }
 
-        template <class T> static bool is( const T &got, const T &expected, string message = "" )
-            {
-                if ( got == expected )
-                    {
-                        return ok( message );
-                    }
-                else
-                    {
-                        fail( message );
-                        stringstream gotDiag;
-                        gotDiag << "       got = " << got;
-                        stringstream expectDiag;
-                        expectDiag << " expected = " << expected;
-                        diag( gotDiag.str() );
-                        diag( expectDiag.str() );
-                        return false;
-                    }
+        template <class T> static bool is( const T &got, const T &expected, string message = "" ) {
+            if ( ok( got == expected, message ) ) {
+                return true;
             }
 
-        template <class T> static bool isnt( const T &got, const T &expected, string message = "" )
-            {
-                if ( got != expected )
-                    {
-                        return ok( message );
-                    }
-                else
-                    {
-                        fail( message );
-                        stringstream gotDiag;
-                        gotDiag << "       got = " << got;
-                        stringstream expectDiag;
-                        expectDiag << " expected = anything else";
-                        diag( gotDiag.str() );
-                        diag( expectDiag.str() );
-                        return false;
-                    }
+            stringstream gotDiag;
+            gotDiag << "       got = " << got;
+            stringstream expectDiag;
+            expectDiag << " expected = " << expected;
+            diag( gotDiag.str() );
+            diag( expectDiag.str() );
+            return false;
+        }
+
+        template <class T> static bool isnt( const T &got, const T &expected, string message = "" ) {
+            if ( ok( got != expected ) ) {
+                return true;
             }
-
-
+            stringstream gotDiag;
+            gotDiag << "       got = " << got;
+            stringstream expectDiag;
+            expectDiag << " expected = anything else";
+            diag( gotDiag.str() );
+            diag( expectDiag.str() );
+            return false;
+        }
     }
 }
 
