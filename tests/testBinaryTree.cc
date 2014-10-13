@@ -1,12 +1,14 @@
 #include "Test/More.h"
 #include "BinaryTree.h"
+#include "RedBlackTree.h"
 #include <map>
 
 using namespace Test::More;
 using namespace std;
 
 int main( void ) {
-    BinaryTree<int,int> b;
+    //BinaryTree<int,int> b;
+    RedBlackTree<int,int> b;
     map<int,int> expect;
     map<int,int>::iterator it;
     int v;

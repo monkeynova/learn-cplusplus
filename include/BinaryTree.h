@@ -12,56 +12,172 @@ class LT {
 
 template <class KeyType, class ValueType, class Comparator=LT<KeyType> >
 class BinaryTree {
+ public:
+    class binarytree_exception : public std::exception {};
+
  protected:
    class Node {
-      public:
-        Node( const KeyType &k, const ValueType &v )
-            : key( k ), value( v ), parent( 0 ), left( 0 ), right( 0 )
-        {
+   public:
+   Node( const KeyType &k, const ValueType &v )
+   : key( k ), value( v ), parent( 0 ), left( 0 ), right( 0 )
+   {
 
-        }
-        virtual ~Node() {}
+   }
+   virtual ~Node() {}
 
-        Node *grandparent() const { return parent && parent->parent; }
-        Node *sibling() const { if ( parent && parent->left == this ) return parent->right; return parent && parent->left; }
-        Node *uncle() const { return parent && parent->sibling(); }
+   Node *grandparent() const { return parent ? parent->parent : NULL; }
+   Node *sibling() const {
+       if ( parent && parent->left == this ) {
+           return parent->right;
+       }
+       return parent ? parent->left : NULL;
+   }
+   Node *uncle() const { return parent ? parent->sibling() : NULL; }
 
-        void assert() const
-        {
-            if ( left && left->parent != this ) {
-                throw assert_exception();
-            }
-            if ( right && right->parent != this ) {
-                throw assert_exception();
-            }
-        }
+   virtual void assert() const {
+       if ( left && left->parent != this ) {
+           std::cerr << "parent( " << left->key << " ) != " << this->key << std::endl;
+           throw binarytree_exception();
+       }
+       if ( right && right->parent != this ) {
+           std::cerr << "parent( " << right->key << " ) != " << this->key << std::endl;
+           throw binarytree_exception();
+       }
+   }
+   virtual void assertTree() const {
+       assert();
+       if ( left ) {
+           left->assertTree();
+       }
+       if ( right ) {
+           right->assertTree();
+       }
+   }
 
-        int operator()( const KeyType &otherKey ) const { return cmp( key, otherKey ); }
-        int operator()( const Node *other ) const { return cmp( key, other->key ); }
+   virtual void debug( const std::string &prefix = "" ) const {
+       if ( parent ) {
+           std::cout << prefix << key << " (" << parent->key << ")" << std::endl;
+       } else {
+           std::cout << prefix << key << " (NULL)" << std::endl;
+       }
+   }
+   virtual void debugTree( const std::string &prefix = "" ) const {
+       debug( prefix );
+       std::string subPrefix = prefix + "  ";
+       if ( left ) {
+           left->debugTree( subPrefix );
+       }
+       if ( right ) {
+           right->debugTree( subPrefix );
+       }
+   }
 
-        unsigned int height() const { return max( left ? left->height() + 1 : 1, right ? right->height + 1 : 1 ); }
+   int operator()( const KeyType &otherKey ) const { return cmp( key, otherKey ); }
+   int operator()( const Node *other ) const { return cmp( key, other->key ); }
 
-        Comparator cmp;
-        KeyType key;
-        ValueType value;
-        Node *parent;
-        Node *left;
-        Node *right;
-    };
+   void reap() {
+       if ( left ) {
+           left->reap();
+           delete left;
+           left = NULL;
+       }
+       if ( right ) {
+           right->reap();
+           delete right;
+           right = NULL;
+       }
+   }
 
- public:
- BinaryTree() : root( 0 ) { }
- virtual ~BinaryTree() {
-     //  std::cerr << "Need to recursively delete" << std::endl;
-     delete root;
+   unsigned int height() const { return max( left ? left->height() + 1 : 1, right ? right->height + 1 : 1 ); }
+
+   Comparator cmp;
+   KeyType key;
+   ValueType value;
+   Node *parent;
+   Node *left;
+   Node *right;
+   };
+
+ Node *root;
+
+ void rotateLeft( Node *node ) {
+     Node *parent = node->parent;
+     Node *newNode = node->right;
+     Node *newLeft = node;
+
+     if ( parent ) {
+         if ( node == parent->left ) {
+             parent->left = newNode;
+         } else {
+             parent->right = newNode;
+         }
+     } else {
+         root = newNode;
+     }
+
+     newNode->parent = parent;
+
+     Node *oldLeft = NULL;
+
+     oldLeft = newNode->left;
+
+     newNode->left = newLeft;
+     newLeft->parent = newNode;
+
+     newLeft->right = oldLeft;
+     if ( oldLeft ) {
+         oldLeft->parent = newLeft;
+     }
+ }
+
+ void rotateRight( Node *node ) {
+     Node *parent = node->parent;
+     Node *newNode = node->left;
+     Node *newRight = node;
+
+     if ( parent ) {
+         if ( node == parent->left ) {
+             parent->left = newNode;
+         } else {
+             parent->right = newNode;
+         }
+     } else {
+         root = newNode;
+     }
+
+     newNode->parent = parent;
+
+     Node *oldRight = NULL;
+
+     oldRight = newNode->right;
+
+     newNode->right = newRight;
+     newRight->parent = newNode;
+
+     newRight->left = oldRight;
+     if ( oldRight ) {
+         oldRight->parent = newRight;
+     }
+ }
+
+
+ virtual Node *makeNode( const KeyType &key, const ValueType &value ) const {
+     return new Node( key, value );
  }
 
  virtual void onInsert( Node *insertedNode ) {}
  virtual void onDeleteSwap( Node *toDelete, Node *replacement ) {}
  virtual void onDelete( Node *deleted, Node *replacement ) {}
 
+ public:
+ BinaryTree() : root( 0 ) { }
+ virtual ~BinaryTree() {
+     root->reap();
+     delete root;
+ }
+
  void insert( const KeyType &key, const ValueType &value ) {
-     Node *toInsert = new Node( key, value );
+     Node *toInsert = makeNode( key, value );
      if ( ! root ) {
          root = toInsert;
      } else {
@@ -143,8 +259,6 @@ class BinaryTree {
 
     unsigned int height() { return root ? root->height() : 0; }
 
-    class assert_exception : public std::exception {};
-
  private:
  void _swap( Node *node1, Node *node2 ) {
      if ( ! node1->parent ) {
@@ -192,8 +306,6 @@ class BinaryTree {
 
      return cur;
  }
-
-    Node *root;
 };
 
 #endif
